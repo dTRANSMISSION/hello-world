@@ -1,0 +1,55 @@
+Resources:
+  routeTablePublic:
+    DependsOn: slsVpcGatewayAttachment
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Name"
+          Value: "sls-route-table-public"
+
+  routePublic:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref slsInternetGateway
+      RouteTableId: !Ref routeTablePublic
+
+  routeTablePrivate:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Name"
+          Value: "sls-route-table-private"
+
+  routePrivate:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref natGateway
+      RouteTableId: !Ref routeTablePrivate
+
+  routeTableAssociationSubnetA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablePublic
+      SubnetId: !Ref subnetA
+
+  routeTableAssociationSubnetC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablePublic
+      SubnetId: !Ref subnetC
+
+  routeTableAssociationSubnetAPrivate:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablePrivate
+      SubnetId: !Ref subnetAPrivate
+
+  routeTableAssociationSubnetCPrivate:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablePrivate
+      SubnetId: !Ref subnetCPrivate

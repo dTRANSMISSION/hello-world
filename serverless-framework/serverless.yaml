@@ -1,0 +1,62 @@
+service: hello-world
+
+provider:
+  name: aws
+  stage: prod
+  logs:
+    http: true
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+  region: us-west-1
+  vpc:
+    securityGroupIds:
+      - !Ref lambdaSecurityGroup
+    subnetIds:
+      - !Ref subnetAPrivate
+      - !Ref subnetCPrivate
+  deploymentBucket:
+    tags:
+      Name: hello-world-sls
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  - serverless-plugin-cloudwatch-dashboard
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    useDownloadCache: false
+  wsgi:
+    app: app.app
+  dashboard:
+    lambda:
+      metrics: [ Duration, Errors, Invocations, Throttles ]
+      stats: [p99, p95, p90, p50]
+      enabled: true
+  DB_NAME: slsHelloWorld
+  DB_PORT: !GetAtt rdsInstance.Endpoint.Port
+  PROXY_ENDPOINT: !GetAtt rdsProxy.Endpoint
+  PROXY_NAME: sls-hello-world-rds-proxy
+  SERVICE_ROLE: !GetAtt serviceRole.Arn
+
+functions:
+  app:
+    handler: wsgi_handler.handler
+    events:
+      - http: GET /
+      - http: GET {proxy+}
+    timeout: 30 # in seconds
+    memorySize: 256 # in MB
+    tags:
+      Name: hello-world
+    role: ${self:custom.SERVICE_ROLE}
+    environment:
+      RDS_SECRET_ARN: !Ref rdsSecret
+      DB_HOST: ${self:custom.PROXY_ENDPOINT}
+
+resources:
+  - ${file(resources/vpc.yml)}
+  - ${file(resources/routing.yml)}
+  - ${file(resources/rds.yml)}
+  - ${file(resources/rds-proxy.yml)}
+  - ${file(resources/lambda.yml)}

@@ -1,0 +1,97 @@
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: "Name"
+          Value: "hello-world-serverless"
+
+  slsInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: "sls-internet-gateway"
+
+  slsVpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref slsInternetGateway
+
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  natGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      SubnetId: !Ref subnetA
+
+  subnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ${self:provider.region}a
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: "Name"
+          Value: "sls-subnet-a"
+
+  subnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ${self:provider.region}c
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: "Name"
+          Value: "sls-subnet-c"
+
+  subnetAPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ${self:provider.region}a
+      CidrBlock: 10.0.2.0/24
+      Tags:
+        - Key: "Name"
+          Value: "sls-subnet-a-private"
+
+  subnetCPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: ${self:provider.region}c
+      CidrBlock: 10.0.3.0/24
+      Tags:
+        - Key: "Name"
+          Value: "sls-subnet-c-private"
+
+  lambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: "Security group for sls Lambdas"
+      Tags:
+        - Key: "Name"
+          Value: "sls-lambda-security-group"
+
+  rdsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: "0.0.0.0/0"
+      GroupDescription: "Security group for sls RDS"
+      Tags:
+        - Key: "Name"
+          Value: "sls-rds-security-group"
